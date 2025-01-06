@@ -57,6 +57,12 @@ export default abstract class LiveStreamBaseModel
         }
 
         let cmd = this.processOption.cmd.replace(/%FFMPEG%/g, this.config.ffmpeg);
+        if (this.processOption.networkId) {
+            cmd = cmd.replace(/%NETWORKID%/g, this.processOption.networkId.toString());
+        }
+        if (this.processOption.serviceId) {
+            cmd = cmd.replace(/%SERVICEID%/g, this.processOption.serviceId.toString());
+        }
         if (this.getStreamType() === 'LiveHLS') {
             cmd = cmd
                 .replace(/%streamFileDir%/g, this.config.streamFilePath)

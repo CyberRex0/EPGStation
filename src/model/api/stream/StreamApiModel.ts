@@ -76,6 +76,8 @@ export default class StreamApiModel implements IStreamApiModel {
         stream.setOption(
             {
                 channelId: option.channelId,
+                networkId: option.networkId ?? undefined,
+                serviceId: option.serviceId ?? undefined,
                 cmd: conf.cmd,
             },
             option.mode,
@@ -103,6 +105,8 @@ export default class StreamApiModel implements IStreamApiModel {
         stream.setOption(
             {
                 channelId: option.channelId,
+                networkId: option.networkId,
+                serviceId: option.serviceId,
                 cmd: conf.cmd,
             },
             option.mode,
@@ -130,6 +134,8 @@ export default class StreamApiModel implements IStreamApiModel {
         stream.setOption(
             {
                 channelId: option.channelId,
+                networkId: option.networkId,
+                serviceId: option.serviceId,
                 cmd: conf.cmd,
             },
             option.mode,
@@ -157,6 +163,8 @@ export default class StreamApiModel implements IStreamApiModel {
         stream.setOption(
             {
                 channelId: option.channelId,
+                networkId: option.networkId,
+                serviceId: option.serviceId,
                 cmd: conf.cmd,
             },
             option.mode,
@@ -184,6 +192,8 @@ export default class StreamApiModel implements IStreamApiModel {
         stream.setOption(
             {
                 channelId: option.channelId,
+                networkId: option.networkId,
+                serviceId: option.serviceId,
                 cmd: conf.cmd,
             },
             option.mode,

@@ -6,6 +6,8 @@ export type LiveHLSStreamModelProvider = () => Promise<ILiveStreamBaseModel>;
 
 export interface LiveStreamOption {
     channelId: apid.ChannelId;
+    networkId?: apid.NetworkId;
+    serviceId?: apid.ServiceId;
     cmd?: string;
 }
 

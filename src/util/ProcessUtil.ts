@@ -1,6 +1,7 @@
 import { ChildProcess } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as shell_quote from 'shell-quote';
 
 namespace ProcessUtil {
     /**
@@ -48,7 +49,20 @@ namespace ProcessUtil {
      * @return ProcessUtil.Cmds
      */
     export const parseCmdStr = (cmd: string): ProcessUtil.Cmds => {
-        let args = cmd.split(' ');
+        const sqParsedArgs = shell_quote.parse(cmd);
+        let args: string[] = [];
+        sqParsedArgs.forEach((pe: any) => {
+            if (typeof pe !== 'string') {
+                if (typeof pe === 'object') {
+                    args.push(pe.op);
+                    return;
+                } else {
+                    throw new Error('CmdParseError');
+                }
+            }
+            args.push(pe);
+        });
+
         let bin = args.shift();
         if (typeof bin === 'undefined') {
             throw new Error('CmdParseError');
