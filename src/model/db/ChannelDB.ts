@@ -46,20 +46,41 @@ export default class ChannelDB implements IChannelDB {
             }
 
             const name = StrUtil.toDBStr(channel.name);
-            values.push({
-                id: channel.id,
-                serviceId: channel.serviceId,
-                networkId: channel.networkId,
-                name: name,
-                halfWidthName: StrUtil.toHalf(name),
-                remoteControlKeyId:
-                    typeof channel.remoteControlKeyId === 'undefined' ? null : channel.remoteControlKeyId,
-                hasLogoData: !!channel.hasLogoData,
-                channelTypeId: this.getChannelTypeId(channel.channel[0].type),
-                channelType: channel.channel[0].type,
-                channel: channel.channel[0].channel,
-                type: typeof (channel as any)['type'] !== 'number' ? null : (channel as any)['type'],
-            });
+
+            if (Array.isArray(channel.channel)) {
+                values.push({
+                    id: channel.id,
+                    serviceId: channel.serviceId,
+                    networkId: channel.networkId,
+                    name: name,
+                    halfWidthName: StrUtil.toHalf(name),
+                    remoteControlKeyId:
+                        typeof channel.remoteControlKeyId === 'undefined' ? null : channel.remoteControlKeyId,
+                    hasLogoData: !!channel.hasLogoData,
+                    channelTypeId: this.getChannelTypeId(channel.channel[0].type),
+                    channelType: channel.channel[0].type,
+                    channel: channel.channel[0].channel,
+                    type: typeof (channel as any)['type'] !== 'number' ? null : (channel as any)['type'],
+                });
+            } else {
+                values.push({
+                    id: channel.id,
+                    serviceId: channel.serviceId,
+                    networkId: channel.networkId,
+                    name: name,
+                    halfWidthName: StrUtil.toHalf(name),
+                    remoteControlKeyId:
+                        typeof channel.remoteControlKeyId === 'undefined' ? null : channel.remoteControlKeyId,
+                    hasLogoData: !!channel.hasLogoData,
+                    // @ts-expect-error mirakc用暫定対処
+                    channelTypeId: this.getChannelTypeId(channel.channel.type),
+                    // @ts-expect-error mirakc用暫定対処
+                    channelType: channel.channel.type,
+                    // @ts-expect-error mirakc用暫定対処
+                    channel: channel.channel.channel,
+                    type: typeof (channel as any)['type'] !== 'number' ? null : (channel as any)['type'],
+                });
+            }
         }
 
         const connection = await this.op.getConnection();

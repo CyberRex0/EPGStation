@@ -208,11 +208,21 @@ class EPGUpdateManageModel extends EventEmitter implements IEPGUpdateManageModel
             if (typeof this.channelIndex[service.networkId] === 'undefined') {
                 this.channelIndex[service.networkId] = {};
             }
-            this.channelIndex[service.networkId][service.serviceId] = {
-                id: service.id,
-                type: service.channel[0].type,
-                channel: service.channel[0].channel,
-            };
+            if (Array.isArray(service.channel)) {
+                this.channelIndex[service.networkId][service.serviceId] = {
+                    id: service.id,
+                    type: service.channel[0].type,
+                    channel: service.channel[0].channel,
+                };
+            } else {
+                this.channelIndex[service.networkId][service.serviceId] = {
+                    id: service.id,
+                    // @ts-expect-error mirakc用暫定対処
+                    type: service.channel.type,
+                    // @ts-expect-error mirakc用暫定対処
+                    channel: service.channel.channel,
+                };
+            }
         }
     }
 
