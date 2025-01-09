@@ -171,9 +171,5 @@ const sendResponse = (
 };
 
 export const isSecureProtocol = (req: express.Request): boolean => {
-    return (
-        req.header('x-forwarded-proto') === 'https' ||
-        req.header('X-Forwarded-Proto') === 'https' ||
-        req.protocol === 'https'
-    );
+    return (req.protocol === 'https');
 };
