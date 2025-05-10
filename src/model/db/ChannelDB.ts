@@ -40,14 +40,13 @@ export default class ChannelDB implements IChannelDB {
         const values: QueryDeepPartialEntity<Channel>[] = [];
 
         // 挿入データ作成
-        for (const channel of channels) {
-            if (typeof channel.channel === 'undefined') {
-                return;
-            }
+        try {
+            for (const channel of channels) {
+                if (typeof channel.channel === 'undefined') {
+                    return;
+                }
 
-            const name = StrUtil.toDBStr(channel.name);
-
-            if (Array.isArray(channel.channel)) {
+                const name = StrUtil.toDBStr(channel.name);
                 values.push({
                     id: channel.id,
                     serviceId: channel.serviceId,
@@ -62,25 +61,9 @@ export default class ChannelDB implements IChannelDB {
                     channel: channel.channel[0].channel,
                     type: typeof (channel as any)['type'] !== 'number' ? null : (channel as any)['type'],
                 });
-            } else {
-                values.push({
-                    id: channel.id,
-                    serviceId: channel.serviceId,
-                    networkId: channel.networkId,
-                    name: name,
-                    halfWidthName: StrUtil.toHalf(name),
-                    remoteControlKeyId:
-                        typeof channel.remoteControlKeyId === 'undefined' ? null : channel.remoteControlKeyId,
-                    hasLogoData: !!channel.hasLogoData,
-                    // @ts-expect-error mirakc用暫定対処
-                    channelTypeId: this.getChannelTypeId(channel.channel.type),
-                    // @ts-expect-error mirakc用暫定対処
-                    channelType: channel.channel.type,
-                    // @ts-expect-error mirakc用暫定対処
-                    channel: channel.channel.channel,
-                    type: typeof (channel as any)['type'] !== 'number' ? null : (channel as any)['type'],
-                });
             }
+        } catch (error) {
+            this.log.system.error('Failed to create insert values for channels', error);
         }
 
         const connection = await this.op.getConnection();
@@ -93,6 +76,7 @@ export default class ChannelDB implements IChannelDB {
             for (const value of values) {
                 try {
                     // DBに挿入処理を実行
+                    this.log.system.debug(`insert Channel: ${value.id} Name: ${value.halfWidthName}`);
                     await queryRunner.manager.insert(Channel, value);
                 } catch (err) {
                     try {
