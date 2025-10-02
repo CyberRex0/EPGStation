@@ -224,6 +224,32 @@ export default class ScheduleApiModel implements IScheduleApiModel {
             });
         }
 
+        // チャンネルをタイプごとに並び替え (GR=1, BS=2, CS=3, SKY=4, NWx=5とする)
+        result.sort((a, b) => {
+            const getTypeNumber = (type: apid.ChannelType): number => {
+                switch (type) {
+                    case 'GR': return 1;
+                    case 'BS': return 2;
+                    case 'CS': return 3;
+                    case 'SKY': return 4;
+                    default: return 5; // NWx
+                }
+            }
+            const aType = getTypeNumber(a.channel.channelType);
+            const bType = getTypeNumber(b.channel.channelType);
+            if (aType !== bType) {
+                return aType - bType;
+            }
+
+            // タイプが同じである場合リモコンキーで並び替え
+            if (a.channel.remoteControlKeyId !== undefined && b.channel.remoteControlKeyId !== undefined) {
+                return a.channel.remoteControlKeyId - b.channel.remoteControlKeyId;
+            }
+            
+            // リモコンキーで比較できない場合サービスIDで並び替え
+            return a.channel.serviceId - b.channel.serviceId;
+        });
+
         return result;
     }
 
