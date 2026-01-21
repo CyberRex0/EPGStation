@@ -42,7 +42,6 @@ export default class RecordedMainMenu extends Vue {
         this.$emit('edit');
     }
 
-
     public async upload(): Promise<void> {
         await Util.sleep(200);
         await Util.move(this.$router, {
