@@ -1450,6 +1450,53 @@ components:
                     description: スクランブルカウント
                     type: integer
 
+        CleanupItem:
+            description: クリーンアップ削除予定項目
+            type: object
+            required:
+                - type
+                - kind
+                - path
+            properties:
+                type:
+                    description: 削除対象タイプ
+                    type: string
+                    enum:
+                        - file
+                        - directory
+                kind:
+                    description: クリーンアップ対象種別
+                    type: string
+                    enum:
+                        - video
+                        - dropLog
+                        - thumbnail
+                path:
+                    description: 削除対象パス
+                    type: string
+                size:
+                    description: ファイルサイズ
+                    type: integer
+
+        CleanupItems:
+            description: クリーンアップ削除予定項目一覧
+            type: object
+            required:
+                - items
+                - total
+                - totalSize
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/CleanupItem'
+                total:
+                    description: 削除予定項目数
+                    type: integer
+                totalSize:
+                    description: 削除予定ファイルの合計サイズ
+                    type: integer
+
         RecordedTag:
             description: タグ情報
             type: object

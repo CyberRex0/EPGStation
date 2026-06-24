@@ -9,5 +9,6 @@ export default interface IRecordedApiModel {
     protect(recordedId: apid.RecordedId): Promise<void>;
     unprotect(recordedId: apid.RecordedId): Promise<void>;
     createNewRecorded(option: apid.CreateNewRecordedOption): Promise<apid.RecordedId>;
+    getCleanupItems(): Promise<apid.CleanupItems>;
     cleanup(): Promise<void>;
 }

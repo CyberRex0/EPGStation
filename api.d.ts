@@ -15,6 +15,8 @@ export type ThumbnailId = number;
 export type DropLogFileId = number;
 export type RecordedTagId = number;
 export type EncodeId = number;
+export type CleanupItemType = 'file' | 'directory';
+export type CleanupItemKind = 'video' | 'dropLog' | 'thumbnail';
 export type ChannelType =
     | 'GR'
     | 'BS'
@@ -522,6 +524,19 @@ export interface DropLogFile {
     errorCnt: number;
     dropCnt: number;
     scramblingCnt: number;
+}
+
+export interface CleanupItem {
+    type: CleanupItemType;
+    kind: CleanupItemKind;
+    path: string;
+    size?: number;
+}
+
+export interface CleanupItems {
+    items: CleanupItem[];
+    total: number;
+    totalSize: number;
 }
 
 /**

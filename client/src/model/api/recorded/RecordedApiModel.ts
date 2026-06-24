@@ -98,6 +98,16 @@ export default class RecordedApiModel implements IRecordedApiModel {
     }
 
     /**
+     * 録画のクリーンアップで削除予定のファイルとディレクトリを取得する
+     * @return Promise<apid.CleanupItems>
+     */
+    public async getCleanupItems(): Promise<apid.CleanupItems> {
+        const result = await this.repository.get('/recorded/cleanup');
+
+        return result.data;
+    }
+
+    /**
      * 録画のクリーンアップ
      * @return Promise<void>
      */

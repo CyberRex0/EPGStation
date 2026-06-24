@@ -87,6 +87,7 @@ export enum RecordedFunctions {
     createNewRecorded = 'createNewRecorded',
     deleteVideoFile = 'deleteVideoFile',
     changeProtect = 'changeProtect',
+    getCleanupItems = 'getCleanupItems',
     videoFileCleanup = 'videoFileCleanup',
     dropLogFileCleanup = 'dropLogFileCleanup',
 }
@@ -126,6 +127,7 @@ export enum RuleFuntions {
  */
 export enum ThumbnailFunctions {
     regenerate = 'regenerate',
+    getCleanupItems = 'getCleanupItems',
     fileCleanup = 'fileCleanup',
     add = 'add',
     delete = 'delete',

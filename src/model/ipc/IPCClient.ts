@@ -297,6 +297,15 @@ export default class IPCClient implements IIPCClient {
                     },
                 });
             },
+            getCleanupItems: () => {
+                return this.send<apid.CleanupItems>(
+                    {
+                        model: ModelName.recorded,
+                        func: RecordedFunctions.getCleanupItems,
+                    },
+                    0, // タイムアウトなし
+                );
+            },
             videoFileCleanup: () => {
                 return this.send(
                     {
@@ -462,6 +471,15 @@ export default class IPCClient implements IIPCClient {
                     model: ModelName.thumbnail,
                     func: ThumbnailFunctions.regenerate,
                 });
+            },
+            getCleanupItems: () => {
+                return this.send<apid.CleanupItems>(
+                    {
+                        model: ModelName.thumbnail,
+                        func: ThumbnailFunctions.getCleanupItems,
+                    },
+                    0, // タイムアウトなし
+                );
             },
             fileCleanup: () => {
                 return this.send({

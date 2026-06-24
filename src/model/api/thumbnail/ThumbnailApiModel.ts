@@ -46,6 +46,14 @@ export default class ThumbnailApiModel implements IThumbnailApiModel {
     }
 
     /**
+     * クリーンアップで削除予定のサムネイルファイルを取得する
+     * @return Promise<apid.CleanupItems>
+     */
+    public async getCleanupItems(): Promise<apid.CleanupItems> {
+        return await this.ipc.thumbnail.getCleanupItems();
+    }
+
+    /**
      * ファイルのクリーンアップ
      */
     public async fileCleanup(): Promise<void> {

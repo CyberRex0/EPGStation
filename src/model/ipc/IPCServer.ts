@@ -274,6 +274,11 @@ export default class IPCServer implements IIPCServer {
             await this.recordedManage.changeProtect(recordedId, isProtect);
         };
 
+        // getCleanupItems
+        index[RecordedFunctions.getCleanupItems] = async () => {
+            return await this.recordedManage.getCleanupItems();
+        };
+
         // videoFileCleanup
         index[RecordedFunctions.videoFileCleanup] = async () => {
             await this.recordedManage.videoFileCleanup();
@@ -405,6 +410,11 @@ export default class IPCServer implements IIPCServer {
         // regenerate
         index[ThumbnailFunctions.regenerate] = async () => {
             await this.thumbnailManage.regenerate();
+        };
+
+        // getCleanupItems
+        index[ThumbnailFunctions.getCleanupItems] = async () => {
+            return await this.thumbnailManage.getCleanupItems();
         };
 
         // fileCleanup

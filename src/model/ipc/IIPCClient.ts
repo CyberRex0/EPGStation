@@ -23,6 +23,7 @@ export interface IPCRecordedManageModel {
     createNewRecorded(option: apid.CreateNewRecordedOption): Promise<apid.RecordedId>;
     deleteVideoFile(videoFileId: apid.VideoFileId, isIgnoreProtection?: boolean): Promise<void>;
     changeProtect(recordedId: apid.RecordedId, isProtect: boolean): Promise<void>;
+    getCleanupItems(): Promise<apid.CleanupItems>;
     videoFileCleanup(): Promise<void>;
     dropLogFileCleanup(): Promise<void>;
 }
@@ -50,6 +51,7 @@ export interface IPCRuleManageModel {
 
 export interface IPCThumbnailManageModel {
     regenerate(): Promise<void>;
+    getCleanupItems(): Promise<apid.CleanupItems>;
     fileCleanup(): Promise<void>;
     add(videoFileId: apid.VideoFileId): Promise<void>;
     delete(thumbnailId: apid.ThumbnailId): Promise<void>;

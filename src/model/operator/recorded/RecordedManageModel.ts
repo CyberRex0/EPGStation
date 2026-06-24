@@ -543,12 +543,43 @@ export default class RecordedManageModel implements IRecordedManageModel {
     }
 
     /**
+     * クリーンアップで削除予定のファイルとディレクトリを取得する
+     * @return Promise<apid.CleanupItems>
+     */
+    public async getCleanupItems(): Promise<apid.CleanupItems> {
+        const items = (await this.collectVideoFileCleanupItems(false)).concat(
+            await this.collectDropLogFileCleanupItems(false),
+        );
+
+        return this.createCleanupItems(items);
+    }
+
+    /**
      * DB に登録されていない recorded 下のファイル削除 &  DB に登録されているが存在しない番組情報の削除
      * @return Promise<void>
      */
     public async videoFileCleanup(): Promise<void> {
         this.log.system.info('start video files cleanup');
+        await this.collectVideoFileCleanupItems(true);
+        this.log.system.info('start video files cleanup completed');
+    }
 
+    /**
+     * DB に登録されていないログファイル削除 &  DB に登録されているが存在しないログ情報の削除
+     */
+    public async dropLogFileCleanup(): Promise<void> {
+        this.log.system.info('start drop log files cleanup');
+        await this.collectDropLogFileCleanupItems(true);
+        this.log.system.info('start drop log files cleanup completed');
+    }
+
+    /**
+     * クリーンアップ対象の録画ファイルと空ディレクトリを列挙し、必要に応じて削除する
+     * @param isDelete true の場合は実際に削除する
+     * @return Promise<apid.CleanupItem[]>
+     */
+    private async collectVideoFileCleanupItems(isDelete: boolean): Promise<apid.CleanupItem[]> {
+        const cleanupItems: apid.CleanupItem[] = [];
         const videoFiles = await this.videoFileDB.findAll();
 
         // ファイル, ディレクトリ索引生成と DB 上に存在するが実ファイルが存在しないデータを削除する
@@ -565,7 +596,7 @@ export default class RecordedManageModel implements IRecordedManageModel {
                 fileIndex[videoFilePath] = true;
                 const parentDir = path.dirname(videoFilePath).replace(new RegExp(`\\${path.sep}$`), '');
                 dirIndex[parentDir] = true;
-            } else {
+            } else if (isDelete === true) {
                 // ファイルが存在しないなら削除
                 await this.deleteVideoFile(video.id).catch(() => {});
             }
@@ -587,17 +618,30 @@ export default class RecordedManageModel implements IRecordedManageModel {
             return dir2.length - dir1.length;
         });
 
+        const deleteFileIndex: { [filePath: string]: boolean } = {};
+        const deleteDirIndex: { [dirPath: string]: boolean } = {};
+
         // ファイル索引上に存在しないファイルを削除する
         for (const file of list.files) {
             if (typeof fileIndex[file] !== 'undefined') {
                 continue;
             }
 
-            this.log.system.info(`delete file: ${file}`);
-            await FileUtil.unlink(file).catch(err => {
-                this.log.system.error(`failed to delete file: ${file}`);
-                this.log.system.error(err);
+            cleanupItems.push({
+                type: 'file',
+                kind: 'video',
+                path: file,
+                size: await this.getCleanupItemSize(file),
             });
+            deleteFileIndex[file] = true;
+
+            if (isDelete === true) {
+                this.log.system.info(`delete file: ${file}`);
+                await FileUtil.unlink(file).catch(err => {
+                    this.log.system.error(`failed to delete file: ${file}`);
+                    this.log.system.error(err);
+                });
+            }
         }
 
         // ディレクトリ索引上に存在しないディレクトリを削除する
@@ -606,31 +650,48 @@ export default class RecordedManageModel implements IRecordedManageModel {
                 continue;
             }
 
-            this.log.system.info(`delete directory: ${dir}`);
             try {
-                // ディレクトリが空かチェック
-                if ((await FileUtil.isEmptyDirectory(dir)) === true) {
-                    await FileUtil.rmdir(dir);
-                } else {
+                // ディレクトリが空かチェックする。dry-run では削除予定ファイル/子ディレクトリを除外して判定する
+                const isEmpty =
+                    isDelete === true
+                        ? await FileUtil.isEmptyDirectory(dir)
+                        : await this.isCleanupTargetDirectory(dir, deleteFileIndex, deleteDirIndex);
+                if (isEmpty === true) {
+                    cleanupItems.push({
+                        type: 'directory',
+                        kind: 'video',
+                        path: dir,
+                    });
+                    deleteDirIndex[dir] = true;
+
+                    if (isDelete === true) {
+                        this.log.system.info(`delete directory: ${dir}`);
+                        await FileUtil.rmdir(dir);
+                    }
+                } else if (isDelete === true) {
                     this.log.system.warn(`directory is not empty: ${dir}`);
                 }
             } catch (err: any) {
-                this.log.system.error(`failed to delete directory: ${dir}`);
-                this.log.system.error(err);
+                if (isDelete === true) {
+                    this.log.system.error(`failed to delete directory: ${dir}`);
+                    this.log.system.error(err);
+                }
             }
         }
 
-        this.log.system.info('start video files cleanup completed');
+        return cleanupItems;
     }
 
     /**
-     * DB に登録されていないログファイル削除 &  DB に登録されているが存在しないログ情報の削除
+     * クリーンアップ対象のドロップログファイルを列挙し、必要に応じて削除する
+     * @param isDelete true の場合は実際に削除する
+     * @return Promise<apid.CleanupItem[]>
      */
-    public async dropLogFileCleanup(): Promise<void> {
-        this.log.system.info('start drop log files cleanup');
+    private async collectDropLogFileCleanupItems(isDelete: boolean): Promise<apid.CleanupItem[]> {
+        const cleanupItems: apid.CleanupItem[] = [];
         const dropLogs = await this.dropLogFileDB.findAll();
 
-        // ファイル, ディレクトリ索引生成と DB 上に存在するが実ファイルが存在しないデータを削除する
+        // ファイル索引生成と DB 上に存在するが実ファイルが存在しないデータを削除する
         const fileIndex: { [filePath: string]: boolean } = {}; // ファイル索引
         for (const dropLog of dropLogs) {
             const filePath = this.getDropLogFilePath(dropLog);
@@ -638,7 +699,7 @@ export default class RecordedManageModel implements IRecordedManageModel {
             if ((await this.checkFileExistence(filePath)) === true) {
                 // ファイルが存在するなら索引に追加
                 fileIndex[filePath] = true;
-            } else {
+            } else if (isDelete === true) {
                 this.log.system.warn(`drop file is not exist: ${filePath}`);
                 // ファイルが存在しないなら削除
                 try {
@@ -657,14 +718,70 @@ export default class RecordedManageModel implements IRecordedManageModel {
                 continue;
             }
 
-            this.log.system.info(`delete drop log file: ${file}`);
-            await FileUtil.unlink(file).catch(err => {
-                this.log.system.error(`failed to drop log file: ${file}`);
-                this.log.system.error(err);
+            cleanupItems.push({
+                type: 'file',
+                kind: 'dropLog',
+                path: file,
+                size: await this.getCleanupItemSize(file),
             });
+
+            if (isDelete === true) {
+                this.log.system.info(`delete drop log file: ${file}`);
+                await FileUtil.unlink(file).catch(err => {
+                    this.log.system.error(`failed to drop log file: ${file}`);
+                    this.log.system.error(err);
+                });
+            }
         }
 
-        this.log.system.info('start drop log files cleanup completed');
+        return cleanupItems;
+    }
+
+    /**
+     * 指定したディレクトリがクリーンアップ後に空になるか返す
+     * @param dir: string ディレクトリパス
+     * @param deleteFileIndex: { [filePath: string]: boolean } 削除予定ファイル索引
+     * @param deleteDirIndex: { [dirPath: string]: boolean } 削除予定ディレクトリ索引
+     * @return Promise<boolean>
+     */
+    private async isCleanupTargetDirectory(
+        dir: string,
+        deleteFileIndex: { [filePath: string]: boolean },
+        deleteDirIndex: { [dirPath: string]: boolean },
+    ): Promise<boolean> {
+        const files = await FileUtil.readDir(dir);
+
+        return files.every(file => {
+            const filePath = path.join(dir, file);
+
+            return typeof deleteFileIndex[filePath] !== 'undefined' || typeof deleteDirIndex[filePath] !== 'undefined';
+        });
+    }
+
+    /**
+     * CleanupItems レスポンスを生成する
+     * @param items: apid.CleanupItem[]
+     * @return apid.CleanupItems
+     */
+    private createCleanupItems(items: apid.CleanupItem[]): apid.CleanupItems {
+        return {
+            items,
+            total: items.length,
+            totalSize: items.reduce((total, item) => total + (item.size || 0), 0),
+        };
+    }
+
+    /**
+     * 指定したファイルパスのサイズを返す
+     * @param filePath: string ファイルパス
+     * @return Promise<number | undefined>
+     */
+    private async getCleanupItemSize(filePath: string): Promise<number | undefined> {
+        try {
+            return (await FileUtil.stat(filePath)).size;
+        } catch (err: any) {
+            return undefined;
+        }
     }
 
     /**

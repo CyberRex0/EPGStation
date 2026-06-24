@@ -4,5 +4,6 @@ export default interface IThumbnailManageModel {
     add(videoFileId: apid.VideoFileId): void;
     delete(thumbnailId: apid.ThumbnailId): Promise<void>;
     regenerate(): Promise<void>;
+    getCleanupItems(): Promise<apid.CleanupItems>;
     fileCleanup(): Promise<void>;
 }

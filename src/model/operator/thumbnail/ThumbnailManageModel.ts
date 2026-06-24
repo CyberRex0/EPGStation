@@ -298,13 +298,34 @@ export default class ThumbnailManageModel implements IThumbnailManageModel {
     }
 
     /**
-     * DB に登録されていないログファイル削除 &  DB に登録されているが存在しないログ情報の削除
+     * クリーンアップで削除予定のサムネイルファイルを取得する
+     * @return Promise<apid.CleanupItems>
+     */
+    public async getCleanupItems(): Promise<apid.CleanupItems> {
+        const items = await this.collectCleanupItems(false);
+
+        return this.createCleanupItems(items);
+    }
+
+    /**
+     * DB に登録されていないサムネイルファイル削除 &  DB に登録されているが存在しないサムネイル情報の削除
      */
     public async fileCleanup(): Promise<void> {
         this.log.system.info('start thumbnail files cleanup');
+        await this.collectCleanupItems(true);
+        this.log.system.info('start thumbnail files cleanup completed');
+    }
+
+    /**
+     * クリーンアップ対象のサムネイルファイルを列挙し、必要に応じて削除する
+     * @param isDelete true の場合は実際に削除する
+     * @return Promise<apid.CleanupItem[]>
+     */
+    private async collectCleanupItems(isDelete: boolean): Promise<apid.CleanupItem[]> {
+        const cleanupItems: apid.CleanupItem[] = [];
         const thumbnails = await this.thumbnailDB.findAll();
 
-        // ファイル, ディレクトリ索引生成と DB 上に存在するが実ファイルが存在しないデータを削除する
+        // ファイル索引生成と DB 上に存在するが実ファイルが存在しないデータを削除する
         const fileIndex: { [filePath: string]: boolean } = {}; // ファイル索引
         for (const thumbnail of thumbnails) {
             const filePath = path.join(this.config.thumbnail, thumbnail.filePath);
@@ -312,7 +333,7 @@ export default class ThumbnailManageModel implements IThumbnailManageModel {
             if ((await this.checkFileExistence(filePath)) === true) {
                 // ファイルが存在するなら索引に追加
                 fileIndex[filePath] = true;
-            } else {
+            } else if (isDelete === true) {
                 this.log.system.warn(`thumbnail file is not exist: ${filePath}`);
                 // ファイルが存在しないなら削除
                 await this.thumbnailDB.deleteOnce(thumbnail.id).catch(err => {
@@ -328,14 +349,49 @@ export default class ThumbnailManageModel implements IThumbnailManageModel {
                 continue;
             }
 
-            this.log.system.info(`delete thumbnail file: ${file}`);
-            await FileUtil.unlink(file).catch(err => {
-                this.log.system.error(`failed to thumbnail file: ${file}`);
-                this.log.system.error(err);
+            cleanupItems.push({
+                type: 'file',
+                kind: 'thumbnail',
+                path: file,
+                size: await this.getCleanupItemSize(file),
             });
+
+            if (isDelete === true) {
+                this.log.system.info(`delete thumbnail file: ${file}`);
+                await FileUtil.unlink(file).catch(err => {
+                    this.log.system.error(`failed to thumbnail file: ${file}`);
+                    this.log.system.error(err);
+                });
+            }
         }
 
-        this.log.system.info('start thumbnail files cleanup completed');
+        return cleanupItems;
+    }
+
+    /**
+     * CleanupItems レスポンスを生成する
+     * @param items: apid.CleanupItem[]
+     * @return apid.CleanupItems
+     */
+    private createCleanupItems(items: apid.CleanupItem[]): apid.CleanupItems {
+        return {
+            items,
+            total: items.length,
+            totalSize: items.reduce((total, item) => total + (item.size || 0), 0),
+        };
+    }
+
+    /**
+     * 指定したファイルパスのサイズを返す
+     * @param filePath: string ファイルパス
+     * @return Promise<number | undefined>
+     */
+    private async getCleanupItemSize(filePath: string): Promise<number | undefined> {
+        try {
+            return (await FileUtil.stat(filePath)).size;
+        } catch (err: any) {
+            return undefined;
+        }
     }
 
     /**
