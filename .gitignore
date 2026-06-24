@@ -22,3 +22,4 @@ dist
 data/upload/*
 data/key/*
 !.gitkeep
+*.bak
