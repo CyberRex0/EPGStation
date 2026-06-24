@@ -1,5 +1,6 @@
 import * as events from 'events';
 import { inject, injectable } from 'inversify';
+import { v7 as uuidv7 } from 'uuid';
 import * as apid from '../../../api';
 import { OperatorFinishEncodeInfo } from '../event/IOperatorEncodeEvent';
 import ILogger from '../ILogger';
@@ -18,6 +19,7 @@ import IIPCClient, {
 } from './IIPCClient';
 import {
     ClientMessageOption,
+    MessageId,
     OperatorEncodeEventFunctions,
     ModelName,
     ParentMessage,
@@ -77,7 +79,7 @@ export default class IPCClient implements IIPCClient {
         process.on('message', async (msg: ReplayMessage | ParentMessage) => {
             if (typeof (<ReplayMessage>msg).id !== 'undefined') {
                 // 送信したメッセージの応答
-                this.listener.emit((<ReplayMessage>msg).id.toString(10), msg);
+                this.listener.emit((<ReplayMessage>msg).id, msg);
             } else if ((<ParentMessage>msg).type === 'notifyClient') {
                 // socket.io によるクライアントへの状態更新通知
                 this.socketIO.notifyClient();
@@ -95,7 +97,7 @@ export default class IPCClient implements IIPCClient {
      */
     private send<T>(option: ClientMessageOption, timeout: number = 5000): Promise<T> {
         const msg: SendMessage = {
-            id: new Date().getTime(),
+            id: this.createMessageId(),
             model: option.model,
             func: option.func,
             args: option.args,
@@ -112,7 +114,7 @@ export default class IPCClient implements IIPCClient {
         });
 
         return new Promise<T>((resolve: (value: T) => void, reject: (err: Error) => void) => {
-            this.listener.once(msg.id.toString(10), (replay: ReplayMessage) => {
+            this.listener.once(msg.id, (replay: ReplayMessage) => {
                 if (typeof replay.error === 'undefined') {
                     resolve(<T>replay.result);
                 } else {
@@ -122,11 +124,19 @@ export default class IPCClient implements IIPCClient {
 
             if (timeout > 0) {
                 setTimeout(() => {
-                    this.listener.removeAllListeners(msg.id.toString(10));
+                    this.listener.removeAllListeners(msg.id);
                     reject(new Error('IPCTimeout'));
                 }, timeout);
             }
         });
+    }
+
+    /**
+     * UUIDv7 形式の IPC message id を生成する
+     * @return MessageId
+     */
+    private createMessageId(): MessageId {
+        return uuidv7();
     }
 
     /**

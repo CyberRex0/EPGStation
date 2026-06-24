@@ -63,7 +63,8 @@
         "sqlite3": "5.1.7",
         "swagger-ui-dist": "5.17.2",
         "typeorm": "0.3.20",
-        "url-join": "4.0.1"
+        "url-join": "4.0.1",
+        "uuid": "14.0.1"
     },
     "devDependencies": {
         "@types/body-parser": "1.19.5",
